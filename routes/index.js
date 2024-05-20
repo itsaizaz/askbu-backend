@@ -1,19 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const textToSpeech = require('../helpers/tts');
-const axios = require('axios');
 const dotenv = require('dotenv');
 
-dotenv.config()
+dotenv.config();
 
 const OpenAI = require("openai");
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY ||'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',
 });
-
-// const openai = new OpenAI({
-//     apiKey:'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',
-// });
 
 router.post('/talk', async (req, res) => {
   const userText = req.body.text;
@@ -33,12 +28,12 @@ router.post('/talk', async (req, res) => {
       })
       .catch(err => {
         console.error("TTS error details:", err.message);
-        res.status(500).json({ error: 'Text-to-speech error' });
+        res.status(500).json({ error: 'Text-to-speech error', details: err.message });
       });
 
   } catch (error) {
     console.error("OpenAI error details:", error.response ? error.response.data : error.message);
-    res.status(500).json({ error: 'Error communicating with OpenAI' });
+    res.status(500).json({ error: 'Error communicating with OpenAI', details: error.message });
   }
 });
 
