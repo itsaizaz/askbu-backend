@@ -10,6 +10,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY ||'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',
 });
 
+
 router.post('/talk', async (req, res) => {
   const userText = req.body.text;
 
