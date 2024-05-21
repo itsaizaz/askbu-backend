@@ -11,7 +11,7 @@ const app = express();
 
 // Middleware setup
 app.use(bodyParser.json());
-app.use(cors({ origin: 'https://ask-bu.vercel.app/' }));  // Replace with your frontend domain
+app.use(cors({ origin: 'https://ask-bu.vercel.app' }));  // Replace with your frontend domain
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
