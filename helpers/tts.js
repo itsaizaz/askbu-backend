@@ -1,7 +1,14 @@
 require('dotenv').config();
 const sdk = require('microsoft-cognitiveservices-speech-sdk');
+const { BlobServiceClient } = require('@azure/storage-blob');
 const blendShapeNames = require('./blendshapeNames');
 const _ = require('lodash');
+const fs = require('fs');
+const path = require('path');
+
+// Initialize the BlobServiceClient
+const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
+const containerClient = blobServiceClient.getContainerClient(process.env.AZURE_STORAGE_CONTAINER_NAME);
 
 const SSML_TEMPLATE = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US">
 <voice name="en-US-JennyNeural">
@@ -22,9 +29,10 @@ const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
       speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Mp3;
 
       const randomString = Math.random().toString(36).slice(2, 7);
-      const filename = `./public/speech-${randomString}.mp3`;
+      const filename = `speech-${randomString}.mp3`;
+      const filepath = path.join('/tmp', filename);
 
-      const audioConfig = sdk.AudioConfig.fromAudioFileOutput(filename);
+      const audioConfig = sdk.AudioConfig.fromAudioFileOutput(filepath);
       const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
 
       const blendData = [];
@@ -51,10 +59,25 @@ const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
 
       synthesizer.speakSsmlAsync(
         ssml,
-        (result) => {
+        async (result) => {
           if (result) {
             synthesizer.close();
-            resolve({ blendData, filename: `/public/speech-${randomString}.mp3` });
+
+            // Read the file from the temporary directory
+            const fileContent = fs.readFileSync(filepath);
+
+            // Upload the file to Azure Blob Storage
+            const blockBlobClient = containerClient.getBlockBlobClient(filename);
+            await blockBlobClient.uploadData(fileContent, {
+              blobHTTPHeaders: {
+                blobContentType: 'audio/mpeg'
+              }
+            });
+
+            // Delete the temporary file
+            fs.unlinkSync(filepath);
+
+            resolve({ blendData, filename: blockBlobClient.url });
           } else {
             synthesizer.close();
             reject(new Error('Synthesis failed'));
