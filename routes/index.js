@@ -10,9 +10,10 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY ||'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',
 });
 
-
 router.post('/talk', async (req, res) => {
   const userText = req.body.text;
+
+  console.log('OpenAI API Key:', process.env.OPENAI_API_KEY); // Log the API key for debugging
 
   try {
     const openaiResponse = await openai.chat.completions.create({
@@ -37,5 +38,3 @@ router.post('/talk', async (req, res) => {
     res.status(500).json({ error: 'Error communicating with OpenAI', details: error.message });
   }
 });
-
-module.exports = router;
