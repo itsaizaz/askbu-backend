@@ -1,22 +1,17 @@
-require('dotenv').config();
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-var cors = require('cors');
-var indexRouter = require('../routes/index');
+const express = require('express');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const logger = require('morgan');
+const cors = require('cors');
 const bodyParser = require('body-parser');
-var app = express();
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
+const indexRouter = require('../routes/index');
+
+const app = express();
+
+// Middleware setup
 app.use(bodyParser.json());
-var corsOptions = {
-  origin: '*'
-};
-app.use(cors(corsOptions));
+app.use(cors({ origin: '*' }));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -26,11 +21,9 @@ app.use(express.static(path.join(__dirname, '../public')));
 // Routes setup
 app.use('/', indexRouter);
 
-app.use(function(req, res, next) {
-  next(createError(404));
-});
-
-app.use(function(err, req, res, next) {
+// Fallback for undefined routes
+app.use((req, res, next) => {
+  // res.status(404).send('Sorry, can\'t find that!');
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
@@ -40,5 +33,3 @@ app.use(function(err, req, res, next) {
 });
 
 module.exports = app;
-
-
