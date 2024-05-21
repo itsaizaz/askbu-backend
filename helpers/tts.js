@@ -1,14 +1,18 @@
-require('dotenv').config();
-const sdk = require('microsoft-cognitiveservices-speech-sdk');
-const { BlobServiceClient } = require('@azure/storage-blob');
-const blendShapeNames = require('./blendshapeNames');
-const _ = require('lodash');
-const fs = require('fs');
-const path = require('path');
+require("dotenv").config();
+const sdk = require("microsoft-cognitiveservices-speech-sdk");
+const { BlobServiceClient } = require("@azure/storage-blob");
+const blendShapeNames = require("./blendshapeNames");
+const _ = require("lodash");
+const fs = require("fs");
+const path = require("path");
 
 // Initialize the BlobServiceClient
-const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
-const containerClient = blobServiceClient.getContainerClient(process.env.AZURE_STORAGE_CONTAINER_NAME);
+const blobServiceClient = BlobServiceClient.fromConnectionString(
+  process.env.AZURE_STORAGE_CONNECTION_STRING
+);
+const containerClient = blobServiceClient.getContainerClient(
+  process.env.AZURE_STORAGE_CONTAINER_NAME
+);
 
 const SSML_TEMPLATE = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US">
 <voice name="en-US-JennyNeural">
@@ -20,17 +24,19 @@ const SSML_TEMPLATE = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/syn
 const KEY = process.env.AZURE_KEY;
 const REGION = process.env.AZURE_REGION;
 
-const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
+const textToSpeech = async (text, voice = "en-US-JennyNeural") => {
   return new Promise((resolve, reject) => {
     try {
       const ssml = SSML_TEMPLATE.replace("__TEXT__", text);
 
       const speechConfig = sdk.SpeechConfig.fromSubscription(KEY, REGION);
-      speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Mp3;
+      speechConfig.speechSynthesisOutputFormat =
+        sdk.SpeechSynthesisOutputFormat.Mp3;
 
+      // Generate a unique filename for the audio file
       const randomString = Math.random().toString(36).slice(2, 7);
       const filename = `speech-${randomString}.mp3`;
-      const filepath = path.join('/tmp', filename);
+      const filepath = path.join(__dirname, "../public", filename);
 
       const audioConfig = sdk.AudioConfig.fromAudioFileOutput(filepath);
       const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
@@ -39,6 +45,7 @@ const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
       let timeStamp = 0;
       const timeStep = 1 / 60;
 
+      // Subscribe to viseme events to collect animation data
       synthesizer.visemeReceived = (s, e) => {
         const animation = JSON.parse(e.animation);
 
@@ -57,30 +64,18 @@ const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
         });
       };
 
+      // Start speech synthesis asynchronously
       synthesizer.speakSsmlAsync(
         ssml,
-        async (result) => {
+        (result) => {
           if (result) {
             synthesizer.close();
-
-            // Read the file from the temporary directory
-            const fileContent = fs.readFileSync(filepath);
-
-            // Upload the file to Azure Blob Storage
-            const blockBlobClient = containerClient.getBlockBlobClient(filename);
-            await blockBlobClient.uploadData(fileContent, {
-              blobHTTPHeaders: {
-                blobContentType: 'audio/mpeg'
-              }
-            });
-
-            // Delete the temporary file
-            fs.unlinkSync(filepath);
-
-            resolve({ blendData, filename: blockBlobClient.url });
+            // Return the full URL of the speech file
+            const fileUrl = `https://bubackend.vercel.app/${filename}`;
+            resolve({ blendData, filename: fileUrl });
           } else {
             synthesizer.close();
-            reject(new Error('Synthesis failed'));
+            reject(new Error("Synthesis failed"));
           }
         },
         (error) => {
@@ -89,8 +84,8 @@ const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
         }
       );
     } catch (error) {
-      console.error('Text-to-speech function error details:', error.message);
-      reject(error);
+      console.error("Text-to-speech function error details:", error.message);
+      reject(error); // Catch and reject any errors
     }
   });
 };
