@@ -18,12 +18,22 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '../public')));
 
+// View engine setup
+app.set('views', path.join(__dirname, '../views'));
+app.set('view engine', 'pug');
+
 // Routes setup
 app.use('/', indexRouter);
 
 // Fallback for undefined routes
 app.use((req, res, next) => {
-  // res.status(404).send('Sorry, can\'t find that!');
+  const err = new Error('Not Found');
+  err.status = 404;
+  next(err);
+});
+
+// Error handler
+app.use((err, req, res, next) => {
   res.locals.message = err.message;
   res.locals.error = req.app.get('env') === 'development' ? err : {};
 
