@@ -11,16 +11,12 @@ const app = express();
 
 // Middleware setup
 app.use(bodyParser.json());
-app.use(cors({ origin: '*' }));
+app.use(cors({ origin: 'https://ask-bu.vercel.app/' }));  // Replace with your frontend domain
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, '../public')));
-
-// View engine setup
-app.set('views', path.join(__dirname, '../views'));
-app.set('view engine', 'pug');
 
 // Routes setup
 app.use('/', indexRouter);
