@@ -13,7 +13,7 @@ const openai = new OpenAI({
 router.post('/talk', async (req, res) => {
   const userText = req.body.text;
 
-  console.log('OpenAI API Key:', process.env.OPENAI_API_KEY); // Log the API key for debugging
+  console.log('Received request with text:', userText);
 
   try {
     const openaiResponse = await openai.chat.completions.create({
