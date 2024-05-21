@@ -7,7 +7,7 @@ dotenv.config();
 
 const OpenAI = require("openai");
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY ||'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',
+    apiKey: process.env.OPENAI_API_KEY,
 });
 
 router.post('/talk', async (req, res) => {
@@ -38,3 +38,5 @@ router.post('/talk', async (req, res) => {
     res.status(500).json({ error: 'Error communicating with OpenAI', details: error.message });
   }
 });
+
+module.exports = router;

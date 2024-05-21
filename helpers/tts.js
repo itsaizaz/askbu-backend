@@ -1,7 +1,7 @@
-require('dotenv').config();  // Load environment variables
-const sdk = require('microsoft-cognitiveservices-speech-sdk');  // Azure speech SDK
-const blendShapeNames = require('./blendshapeNames');  // Blend shape data
-const _ = require('lodash');  // Utility library
+require('dotenv').config();
+const sdk = require('microsoft-cognitiveservices-speech-sdk');
+const blendShapeNames = require('./blendshapeNames');
+const _ = require('lodash');
 
 const SSML_TEMPLATE = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US">
 <voice name="en-US-JennyNeural">
@@ -10,16 +10,9 @@ const SSML_TEMPLATE = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/syn
 </voice>
 </speak>`;
 
-// Use environment variables for key and region
-const KEY = process.env.AZURE_KEY || '450fe8606a21440a9cc8b389376317e7';
-const REGION = process.env.AZURE_REGION || 'eastus';
+const KEY = process.env.AZURE_KEY;
+const REGION = process.env.AZURE_REGION;
 
-/**
- * Converts text to speech with Azure Cognitive Services.
- * @param {string} text Text to convert
- * @param {string} voice (optional) Voice to use for synthesis
- * @returns {Promise<{blendData: Array, filename: string}>} Returns a promise with blend data and filename
- */
 const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
   return new Promise((resolve, reject) => {
     try {
@@ -28,7 +21,6 @@ const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
       const speechConfig = sdk.SpeechConfig.fromSubscription(KEY, REGION);
       speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Mp3;
 
-      // Generate a unique filename for the audio file
       const randomString = Math.random().toString(36).slice(2, 7);
       const filename = `./public/speech-${randomString}.mp3`;
 
@@ -39,7 +31,6 @@ const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
       let timeStamp = 0;
       const timeStep = 1 / 60;
 
-      // Subscribe to viseme events to collect animation data
       synthesizer.visemeReceived = (s, e) => {
         const animation = JSON.parse(e.animation);
 
@@ -58,7 +49,6 @@ const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
         });
       };
 
-      // Start speech synthesis asynchronously
       synthesizer.speakSsmlAsync(
         ssml,
         (result) => {
@@ -77,7 +67,7 @@ const textToSpeech = async (text, voice = 'en-US-JennyNeural') => {
       );
     } catch (error) {
       console.error('Text-to-speech function error details:', error.message);
-      reject(error);  // Catch and reject any errors
+      reject(error);
     }
   });
 };
