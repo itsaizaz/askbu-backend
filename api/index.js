@@ -1,117 +1,49 @@
-// const express = require('express');
-// const path = require('path');
-// const cookieParser = require('cookie-parser');
-// const logger = require('morgan');
-// const cors = require('cors');
-// const createError = require('http-errors');
-// const gOPD = require('gopd');
-
-// const indexRouter = require('./routes/index');
-
-// const app = express();
-
-// // --- CRITICAL FIX: Bypass the Express query parser dependency issue ---
-// app.set('query parser', false); 
-// app.use((req, res, next) => {
-//     // Basic query parser replacement (avoids problematic qs/gOPD chain)
-//     req.query = require('url').parse(req.url, true).query;
-//     next();
-// });
-// // ----------------------------------------------------------------------
-
-// // Middleware setup
-// app.use(cors({ origin: 'https://ask-bu.vercel.app' })); // Restricted CORS for security
-// app.use(logger('dev'));
-// app.use(express.json()); // Handles JSON body parsing (replaces body-parser)
-// app.use(express.urlencoded({ extended: false }));
-// app.use(cookieParser());
-// app.use(express.static(path.join(__dirname, '../public'))); 
-
-// // Routes setup
-// app.use('/', indexRouter);
-
-// // Fallback for undefined routes (404)
-// app.use((req, res, next) => {
-//     next(createError(404)); 
-// });
-
-// // Final Error handler (Returns JSON for API)
-// app.use((err, req, res, next) => {
-//     console.error(`Status ${err.status || 500}: ${err.message}`);
-
-//     res.status(err.status || 500).json({
-//         error: {
-//             message: err.message,
-//             details: req.app.get('env') === 'development' ? err : {}
-//         }
-//     });
-// });
-
-// module.exports = app;
-
-
-
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const cors = require('cors');
-const createError = require('http-errors');
-const gOPD = require('gopd'); // ✅ Correct import
+// const bodyParser = require('body-parser'); // Removed: redundant with express.json()
+const createError = require('http-errors'); // Added for 404 handler
 
-const indexRouter = require('./routes/index');
+const indexRouter = require('../routes/index');
 
 const app = express();
 
-// --- CRITICAL FIX: Bypass the Express query parser dependency issue ---
-app.set('query parser', false); 
-app.use((req, res, next) => {
-    // Basic query parser replacement (avoids problematic qs/gOPD chain)
-    req.query = require('url').parse(req.url, true).query;
-    next();
-});
-// ----------------------------------------------------------------------
-
 // Middleware setup
+// app.use(bodyParser.json()); // REDUNDANT: Removed
 app.use(cors({ origin: 'https://ask-bu.vercel.app' })); // Restricted CORS for security
 app.use(logger('dev'));
-app.use(express.json()); 
+app.use(express.json()); // Use built-in JSON parser
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+// Serving static files might be better handled by Vercel static assets, 
+// but is kept here for local testing compatibility.
 app.use(express.static(path.join(__dirname, '../public'))); 
-
-// --- Example route using gOPD safely ---
-app.get('/gopd-test', (req, res) => {
-    const exampleObj = { name: 'Muhammad', age: 25 };
-
-    // Using gOPD instead of Object.getOwnPropertyDescriptor directly
-    const nameDesc = gOPD(exampleObj, 'name');
-    const ageDesc = gOPD(exampleObj, 'age');
-
-    res.json({
-        message: 'gOPD test successful',
-        descriptors: { name: nameDesc, age: ageDesc }
-    });
-});
 
 // Routes setup
 app.use('/', indexRouter);
 
 // Fallback for undefined routes (404)
 app.use((req, res, next) => {
+    // Uses the imported createError dependency
     next(createError(404)); 
 });
 
 // Final Error handler (Returns JSON for API)
 app.use((err, req, res, next) => {
+    // Logs the error message for debugging
     console.error(`Status ${err.status || 500}: ${err.message}`);
 
+    // Send JSON response instead of rendering a view
     res.status(err.status || 500).json({
         error: {
             message: err.message,
+            // Only expose the stack trace in development mode
             details: req.app.get('env') === 'development' ? err : {}
         }
     });
 });
 
+// This is the Express app instance that Vercel will export and run as a serverless function.
 module.exports = app;
