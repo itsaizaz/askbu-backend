@@ -5,9 +5,12 @@
       "src": "api/index.js",
       "use": "@vercel/node",
       "config": {
+       
         "includeFiles": [
           "node_modules/gopd/**",
-          "node_modules/get-intrinsic/**"
+          "node_modules/get-intrinsic/**",
+          "node_modules/side-channel/**",
+          "node_modules/side-channel-map/**"
         ]
       }
     }
