@@ -1,7 +1,7 @@
-require("dotenv").config(); // Retained for local testing environment
+require("dotenv").config();
 const sdk = require("microsoft-cognitiveservices-speech-sdk");
 const { BlobServiceClient } = require("@azure/storage-blob");
-const blendShapeNames = require("./blendshapeNames");
+const blendShapeNames = require("./blendshapeNames"); // Your blend shape array
 const fs = require("fs");
 const path = require("path");
 
@@ -9,7 +9,7 @@ const path = require("path");
 const AZURE_KEY = process.env.AZURE_KEY;
 const AZURE_REGION = process.env.AZURE_REGION;
 
-// Initialize Azure Storage Clients
+// Initialize Azure Storage Clients (Executed once on cold start)
 const blobServiceClient = BlobServiceClient.fromConnectionString(
     process.env.AZURE_STORAGE_CONNECTION_STRING
 );
@@ -30,10 +30,10 @@ const textToSpeech = async (text, voice = "en-US-JennyNeural") => {
             .replace("__TEXT__", text)
             .replace("__VOICE__", voice);
 
+        // Case-sensitivity fix: Use local constants
         const speechConfig = sdk.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
         speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Mp3;
 
-        // Generate a unique filename and path (we'll save temporarily)
         const randomString = Math.random().toString(36).slice(2, 7);
         const filename = `speech-${randomString}.mp3`;
         const filepath = path.join(__dirname, "../public", filename);
@@ -51,7 +51,6 @@ const textToSpeech = async (text, voice = "en-US-JennyNeural") => {
             animation.BlendShapes.forEach((blendArray) => {
                 const blend = {};
                 blendShapeNames.forEach((shapeName, i) => {
-                    // Blend shape values are normalized between 0 and 1
                     blend[shapeName] = blendArray[i]; 
                 });
                 blendData.push({ time: timeStamp, blendshapes: blend });
@@ -72,25 +71,23 @@ const textToSpeech = async (text, voice = "en-US-JennyNeural") => {
                         // 2. Upload to Azure Blob Storage
                         const blockBlobClient = containerClient.getBlockBlobClient(filename);
                         await blockBlobClient.upload(fileData, fileData.length, {
-                            // Ensure the file is publicly readable
                             blobHTTPHeaders: { blobContentType: 'audio/mpeg' }
                         });
                         
-                        // 3. Clean up the local file (Crucial for Vercel Serverless)
-                        fs.unlinkSync(filepath);
+                        // 3. Clean up the local file (CRUCIAL for Vercel Serverless)
+                        fs.unlinkSync(filepath); 
                         
                         // 4. Resolve with the public URL
                         resolve({ blendData, filename: blockBlobClient.url });
-                        
 
                     } catch (uploadError) {
-                        // Cleanup on upload fail
+                        // Cleanup and reject on upload fail
                         if (fs.existsSync(filepath)) fs.unlinkSync(filepath); 
                         reject(new Error(`Azure Upload Failed: ${uploadError.message}`));
-                        console.log("Azure upload failed")
                     }
                 } else {
-                    reject(new Error(`Synthesis failed: ${result.errorDetails}`));
+                    // Synthesis failed reason
+                    reject(new Error(`Synthesis failed: ${result.errorDetails || 'Unknown error'}`));
                 }
             },
             (error) => {
@@ -104,4 +101,3 @@ const textToSpeech = async (text, voice = "en-US-JennyNeural") => {
 };
 
 module.exports = textToSpeech;
-
