@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-
+require('dotenv').config();
+console.log('Connection String Loaded:', !!process.env.AZURE_STORAGE_CONNECTION_STRING); // Should output: true
 /**
  * Module dependencies.
  */

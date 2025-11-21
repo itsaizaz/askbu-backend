@@ -1,84 +1,51 @@
-// var createError = require('http-errors');
-// var express = require('express');
-// var path = require('path');
-// var cookieParser = require('cookie-parser');
-// var logger = require('morgan');
-// var cors = require('cors');
-
-// var indexRouter = require('./routes/index');
-// const bodyParser = require('body-parser');
-// var app = express();
-
-
-// // view engine setup
-// app.set('views', path.join(__dirname, 'views'));
-// app.set('view engine', 'pug');
-// app.use(bodyParser.json());
-// var corsOptions = {
-//   origin: '*'
-// };
-// app.use(cors(corsOptions));
-// app.use(logger('dev'));
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: false }));
-// app.use(cookieParser());
-// app.use(express.static(path.join(__dirname, 'public')));
-
-// app.use('/', indexRouter);
-
-// app.use(function(req, res, next) {
-//   next(createError(404));
-// });
-
-// app.use(function(err, req, res, next) {
-//   res.locals.message = err.message;
-//   res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-//   // render the error page
-//   res.status(err.status || 500);
-//   res.render('error');
-// });
-
-// module.exports = app;
-
-require('dotenv').config();
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require('cors');
+
 var indexRouter = require('./routes/index');
-const bodyParser = require('body-parser');
+
 var app = express();
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'pug');
-app.use(bodyParser.json());
+// --- Deployment Best Practice: Remove unused 'views' engine in API ---
+// app.set('views', path.join(__dirname, 'views'));
+// app.set('view engine', 'pug');
+
+// --- CORS Setup (Allow all for API access) ---
 var corsOptions = {
-  origin: '*'
+    // You should change '*' to your actual frontend domain for production security
+    origin: '*' 
 };
 app.use(cors(corsOptions));
+
+// --- Middleware Setup ---
 app.use(logger('dev'));
-app.use(express.json());
+app.use(express.json()); // Handles JSON body parsing (replaces body-parser)
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// --- Routes ---
 app.use('/', indexRouter);
 
+// --- Error Handling ---
+// Catch 404 and forward to error handler
 app.use(function(req, res, next) {
-  next(createError(404));
+    next(createError(404));
 });
 
+// Final error handler
 app.use(function(err, req, res, next) {
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+    // For Vercel/API, return JSON instead of rendering a view
+    res.status(err.status || 500).json({
+        error: {
+            message: err.message,
+            // Only expose stack trace in development mode
+            stack: req.app.get('env') === 'development' ? err.stack : undefined
+        }
+    });
 });
 
 module.exports = app;
