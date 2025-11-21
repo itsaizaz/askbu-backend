@@ -4,6 +4,7 @@ const { BlobServiceClient } = require("@azure/storage-blob");
 const blendShapeNames = require("./blendshapeNames"); // Your blend shape array
 const fs = require("fs");
 const path = require("path");
+const os = require("os"); // <-- ADDED: Needed to access the temporary directory
 
 // Use Environment Variables for security and Vercel compatibility
 const AZURE_KEY = process.env.AZURE_KEY;
@@ -19,8 +20,8 @@ const containerClient = blobServiceClient.getContainerClient(
 
 const SSML_TEMPLATE = `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="http://www.w3.org/2001/mstts" xml:lang="en-US">
 <voice name="__VOICE__">
-  <mstts:viseme type="FacialExpression"/>
-  __TEXT__
+    <mstts:viseme type="FacialExpression"/>
+    __TEXT__
 </voice>
 </speak>`;
 
@@ -36,7 +37,10 @@ const textToSpeech = async (text, voice = "en-US-JennyNeural") => {
 
         const randomString = Math.random().toString(36).slice(2, 7);
         const filename = `speech-${randomString}.mp3`;
-        const filepath = path.join(__dirname, "../public", filename);
+        
+        // 🚨 FIX: Replaced path.join(__dirname, "../public", filename) 
+        // with the safe temporary directory. This resolves the EROFS error.
+        const filepath = path.join(os.tmpdir(), filename);
 
         const audioConfig = sdk.AudioConfig.fromAudioFileOutput(filepath);
         const synthesizer = new sdk.SpeechSynthesizer(speechConfig, audioConfig);
@@ -66,6 +70,7 @@ const textToSpeech = async (text, voice = "en-US-JennyNeural") => {
                 if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
                     try {
                         // 1. Read the locally saved file
+                        // The file is now safely saved to /tmp/
                         const fileData = fs.readFileSync(filepath);
                         
                         // 2. Upload to Azure Blob Storage
@@ -74,7 +79,7 @@ const textToSpeech = async (text, voice = "en-US-JennyNeural") => {
                             blobHTTPHeaders: { blobContentType: 'audio/mpeg' }
                         });
                         
-                        // 3. Clean up the local file (CRUCIAL for Vercel Serverless)
+                        // 3. Clean up the local file (CRUCIAL for Vercel/Azure Functions)
                         fs.unlinkSync(filepath); 
                         
                         // 4. Resolve with the public URL
