@@ -11,7 +11,7 @@ const app = express();
 
 // Middleware setup
 app.use(cors({ 
-  origin: ['https://ask-bu.vercel.app', 'http://localhost:3000'],
+  origin: ['https://ask-bu.vercel.app', 'http://localhost:3000', 'https://ask-bu-five.vercel.app/'],
   credentials: true 
 })); // ✅ FIXED: Allow both production and local development
 app.use(logger('dev'));
