@@ -11,9 +11,13 @@ const app = express();
 
 // Middleware setup
 app.use(cors({ 
-  origin: ['https://ask-bu.vercel.app', 'http://localhost:3000', 'https://ask-bu-five.vercel.app/'],
+  origin: [
+    'https://ask-bu.vercel.app',
+    'https://ask-bu-five.vercel.app',  // ✅ ADD THIS LINE
+    'http://localhost:3000'
+  ],
   credentials: true 
-})); // ✅ FIXED: Allow both production and local development
+}));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
